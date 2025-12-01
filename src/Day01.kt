@@ -6,27 +6,42 @@ fun main() {
         var countZeros = 0
         var curIndex = 50
 
-        "The dial starts by pointing at $curIndex.".println()
-
         instructions.forEach { instruction ->
-            curIndex += when (instruction.direction) {
-                Direction.LEFT -> -instruction.steps
-                Direction.RIGHT -> instruction.steps
+            for (i in 1..instruction.steps) {
+                curIndex += when (instruction.direction) {
+                    Direction.LEFT -> -1
+                    Direction.RIGHT -> +1
+                }
+                curIndex = curIndex.ring()
             }
-            curIndex = curIndex.ring(100)
-
             if (curIndex == 0) {
                 countZeros++
             }
-
-            "The dial is rotated ${instruction.direction}${instruction.steps} to point at $curIndex.".println()
         }
 
         return countZeros
     }
 
     fun part2(input: List<String>): Int {
-        return input.size
+        val instructions = input.parse()
+        var countZeros = 0
+        var curIndex = 50
+
+        instructions.forEach { instruction ->
+            for (i in 1..instruction.steps) {
+                curIndex += when (instruction.direction) {
+                    Direction.LEFT -> -1
+                    Direction.RIGHT -> +1
+                }
+                curIndex = curIndex.ring()
+                if (curIndex == 0) {
+                    countZeros++
+                }
+            }
+
+        }
+
+        return countZeros
     }
 
     val testInput = readInput("Day${DAY.toDayString()}_test")
@@ -34,12 +49,16 @@ fun main() {
 
     val input = readInput("Day${DAY.toDayString()}")
     part1(input).println()
+
+    part2(testInput).println()
+    check(part2(testInput) == 6)
+
     part2(input).println()
 }
 
-private fun Int.ring(size: Int) = ((this % size) + size) % size
+private fun Int.ring() = ((this % 100) + 100) % 100
 
-private fun List<String>.parse(): List<Instruction> {
+    private fun List<String>.parse(): List<Instruction> {
     var list = mutableListOf<Instruction>()
     val regex = Regex("""(L|R)(\d+)""")
     forEach { line ->
