@@ -10,12 +10,11 @@ fun main() {
     fun part1(input: List<String>, iterations: Int): Long {
         val junctions = input.parse()
         val distances = junctions.calculateDistances()
-        val circuits = mutableListOf<MutableSet<Junction>>()
+        val circuits  = junctions.indices.toList().map { mutableSetOf(it) }.toMutableList()
 
         repeat(iterations) {
             val minIndex = distances.getCoordinatesOfMin()
-            circuits.addJunctions(junctions[minIndex.first], junctions[minIndex.second])
-            circuits.sortedByDescending { it.size }.map { it.size }.println()
+            circuits.mergeJunctions(minIndex.first, minIndex.second, distances)
         }
 
         return circuits.sortedByDescending { it.size }.take(3).map { it.size }.reduce {acc, i -> acc*i}.toLong()
@@ -33,15 +32,17 @@ fun main() {
     part2(input).println()
 }
 
-private fun MutableList<MutableSet<Junction>>.addJunctions(junction1: Junction, junction2: Junction) {
-    forEach { circuit ->
-        if (circuit.contains(junction1) || circuit.contains(junction2)) {
-            circuit.add(junction1)
-            circuit.add(junction2)
-            return
-        }
+private fun MutableList<MutableSet<Int>>.mergeJunctions(junctionIndex1: Int, junctionIndex2: Int, distances: Array<Array<Double>>) {
+    val circuitIndex1 = indexOfFirst { it.contains(junctionIndex1) }
+    val circuitIndex2 = indexOfFirst { it.contains(junctionIndex2) }
+    if (circuitIndex1 == circuitIndex2) {
+        distances[junctionIndex1][junctionIndex2] = Double.MAX_VALUE
+        distances[junctionIndex2][junctionIndex1] = Double.MAX_VALUE
+        return
     }
-    add(mutableSetOf(junction1, junction2))
+    this[circuitIndex1].addAll(this[circuitIndex2])
+    this.removeAt(circuitIndex2)
+    return
 }
 
 private fun Array<Array<Double>>.getCoordinatesOfMin(): Pair<Int, Int> {
