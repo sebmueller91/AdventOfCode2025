@@ -1,3 +1,4 @@
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -21,7 +22,17 @@ fun main() {
     }
 
     fun part2(input: List<String>): Long {
-        return input.size.toLong()
+        val junctions = input.parse()
+        val distances = junctions.calculateDistances()
+        val circuits  = junctions.indices.toList().map { mutableSetOf(it) }.toMutableList()
+
+        while (true) {
+            val minIndex = distances.getCoordinatesOfMin()
+            circuits.mergeJunctions(minIndex.first, minIndex.second, distances)
+            if (circuits.size == 1) {
+                return junctions[minIndex.first].x * junctions[minIndex.second].x
+            }
+        }
     }
 
     val testInput = readInput("Day${DAY.toDayString()}_test")
@@ -29,6 +40,8 @@ fun main() {
 
     val input = readInput("Day${DAY.toDayString()}")
     part1(input, 1000).println()
+
+    check(part2(testInput) == 25272L)
     part2(input).println()
 }
 
