@@ -1,4 +1,8 @@
-import kotlin.math.abs
+import java.awt.Polygon
+import java.awt.geom.Line2D
+import java.awt.geom.Point2D
+import java.awt.geom.Rectangle2D
+import kotlin.math.*
 
 private const val DAY = 9
 
@@ -8,7 +12,8 @@ fun main() {
         var maxArea = Long.MIN_VALUE
         for (i in coordinates.indices) {
             for (j in coordinates.indices) {
-                val area = calculateArea(coordinates[i], coordinates[j])
+                val rectangle = toRectangle(coordinates[i], coordinates[j])
+                val area = ((rectangle.width + 1) * (rectangle.height + 1)).roundToLong()
                 if (area > maxArea) {
                     maxArea = area
                 }
@@ -19,9 +24,30 @@ fun main() {
 
     fun part2(input: List<String>): Long {
         val coordinates = input.parse()
-        val (horizontalLines, verticalLines) = coordinates.getLines()
+        val polygon =
+            Polygon(
+                coordinates.map { it.x.toInt() }.toIntArray(),
+                coordinates.map { it.y.toInt() }.toIntArray(),
+                coordinates.size
+            )
 
-        return input.size.toLong()
+        var maxArea = Long.MIN_VALUE
+        val (horizontalLines, verticalLines) = coordinates.getLines()
+        val horizontalLinePairs = horizontalLines.getLinePairs()
+        val verticalLinePairs = verticalLines.getLinePairs()
+
+        horizontalLinePairs.forEach { horizontalLinePair ->
+            verticalLinePairs.forEach {verticalLinePairs ->
+                val rectangle = toRectangle(horizontalLinePair.first, horizontalLinePair.second, verticalLinePairs.first, verticalLinePairs.second)
+                val area = rectangle.getArea()
+                if (polygon.contains(rectangle) && area > maxArea) {
+                    maxArea = area
+                }
+            }
+        }
+
+        maxArea.println()
+        return maxArea
     }
 
     val testInput = readInput("Day${DAY.toDayString()}_test")
@@ -34,61 +60,46 @@ fun main() {
     part2(input).println()
 }
 
-private fun calculateArea(coordinate1: Coordinate, coordinate2: Coordinate): Long =
-    (1 + abs(coordinate1.x - coordinate2.x)).toLong() * (1 + abs(coordinate1.y - coordinate2.y)).toLong()
+private fun List<Line2D>.getLinePairs(): List<Pair<Line2D, Line2D>> = this.flatMap { a: Line2D ->
+    this.filter { b: Line2D -> a != b }.map { b: Line2D -> a to b }
+}
 
-private fun getLinePairs().
+private fun toRectangle(h1: Line2D, h2: Line2D, v1: Line2D, v2: Line2D): Rectangle2D {
+    val minX = min(v1.p1.x, v2.p1.x)
+    val minY = min(h1.p1.y, h2.p1.y)
+    val maxX = max(v1.p1.x, v2.p1.x)
+    val maxY = max(h1.p1.y, h2.p1.y)
+    return Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY)
+}
 
-private fun List<Coordinate>.getLines(): Pair<List<Line>, List<Line>> {
-    val horizontalLines = mutableListOf<Line>()
-    val verticalLines = mutableListOf<Line>()
+private fun toRectangle(p1: Point2D, p2: Point2D): Rectangle2D {
+    val minX = min(p1.x, p2.x)
+    val minY = min(p1.y, p2.y)
+    val maxX = max(p1.x, p2.x)
+    val maxY = max(p1.y, p2.y)
+    return Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY)
+}
+
+private fun Rectangle2D.getArea(): Long = ((this.width + 1) * (this.height + 1)).roundToLong()
+
+private fun List<Point2D>.getLines(): Pair<List<Line2D>, List<Line2D>> {
+    val horizontalLines = mutableListOf<Line2D>()
+    val verticalLines = mutableListOf<Line2D>()
     for (i in indices) {
         val p1 = this.getElement(i)
         val p2 = this.getElement(i + 1)
         if (p1.x == p2.x) {
-            horizontalLines.add(Line(p1, p2))
+            verticalLines.add(Line2D.Double(p1, p2))
         } else {
-            verticalLines.add(Line(p1, p2))
+            horizontalLines.add(Line2D.Double(p1, p2))
         }
     }
     return Pair(horizontalLines, verticalLines)
 }
 
+private fun List<Point2D>.getElement(index: Int): Point2D = this[index % this.size]
 
-private fun List<Line>.getLineParis(): List<Pair<Line, Line>> {
-    indices.flatMap { i ->
-        indices.sli
-    }
-}
-
-
-private fun orientation(p1: Coordinate, p2: Coordinate, p3: Coordinate): Int =
-    (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x)
-
-private fun List<Coordinate>.getElement(index: Int): Coordinate = this[index % this.size]
-
-private fun List<String>.parse(): List<Coordinate> = map { line ->
+private fun List<String>.parse(): List<Point2D> = map { line ->
     val (x, y) = Regex("""(\d+),(\d+)""").find(line)!!.destructured
-    Coordinate(x.toInt(), y.toInt())
+    Point2D.Double(x.toDouble(), y.toDouble())
 }
-
-private data class Rectangle(
-    val h1: Line,
-    val h2: Line,
-    val v1: Line,
-    val v2: Line,
-)
-
-private data class Line(
-    val p1: Coordinate,
-    val p2: Coordinate,
-) {
-    fun intersects(otherLine: Line): Boolean =
-        (orientation(p1, p2, otherLine.p1) * orientation(p1, p2, otherLine.p2) <= 0) &&
-                (orientation(otherLine.p1, otherLine.p2, p1) * orientation(otherLine.p1, otherLine.p2, p2) <= 0)
-}
-
-private data class Coordinate(
-    val x: Int,
-    val y: Int
-)
