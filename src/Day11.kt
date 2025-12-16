@@ -7,27 +7,13 @@ fun main() {
         return countPaths(youNode, outNode)
     }
 
-    fun part2(input: List<String>): Int {
+    fun part2(input: List<String>): Long {
+        knownStates.clear()
+
         val svrNode = input.parse().first { it.name == "svr" }
-        val fftNode = input.parse().first { it.name == "fft" }
-        val dacNode = input.parse().first { it.name == "dac" }
         val outNode = input.parse().first { it.name == "out" }
 
-        "1".println()
-        val svrToFft = countPaths(svrNode, fftNode)
-        "2".println()
-        val svrToDac = countPaths(svrNode, dacNode)
-        "3".println()
-        val dacToFft = countPaths(dacNode, fftNode)
-        "4".println()
-        val fftToDac = countPaths(fftNode, dacNode)
-        "5".println()
-        val fftToOut = countPaths(fftNode, outNode)
-        "6".println()
-        val dacToOut = countPaths(dacNode, outNode)
-        "7".println()
-
-        return svrToFft*fftToDac*dacToOut + svrToDac*dacToFft*fftToOut
+        return countPaths(curNode = svrNode, targetNode = outNode, dacVisited = false, fftVisited = false)
     }
 
     val testInput = readInput("Day${DAY.toDayString()}_test")
@@ -37,7 +23,7 @@ fun main() {
     part1(input).println()
 
     val testInput2 = readInput("Day${DAY.toDayString()}_test2")
-    check(part2(testInput2) == 2)
+    check(part2(testInput2) == 2L)
 
     part2(input).println()
 }
@@ -57,16 +43,36 @@ private fun countPaths(curNode: Node, targetNode: Node, traversed: List<Node> = 
     return count
 }
 
-private fun countPaths2(curNode: Node, traversed: List<Node>): Int {
-    if (curNode.name == "out") {
-        val correctPath = traversed.any { it.name == "dac" } && traversed.any { it.name == "fft" }
-        return if (correctPath) 1 else 0
+private data class State(
+    val dacVisited: Boolean,
+    val fftVisited: Boolean,
+    val curNodeName: String
+)
+
+private val knownStates = HashMap<State, Long>()
+private fun countPaths(
+    curNode: Node,
+    targetNode: Node,
+    dacVisited: Boolean,
+    fftVisited: Boolean
+): Long {
+    val curState = State(
+        dacVisited = dacVisited || curNode.name == "dac",
+        fftVisited = fftVisited || curNode.name == "fft",
+        curNodeName = curNode.name
+    )
+    if (knownStates.containsKey(curState)) {
+        return knownStates.getValue(curState)
     }
-    var count = 0
+    if (curNode.name == targetNode.name) {
+        return if (curState.dacVisited && curState.fftVisited) 1 else 0
+    }
+    var count = 0L
     curNode.outputs.forEach { output ->
-        val newTraversed = traversed.toMutableList().apply { add(curNode) }
-        count += countPaths2(output, newTraversed)
+        count += countPaths(output, targetNode, curState.dacVisited, curState.fftVisited)
     }
+
+    knownStates[curState] = count
     return count
 }
 
