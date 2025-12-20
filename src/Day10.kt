@@ -4,7 +4,7 @@ fun main() {
     fun part1(input: List<String>): Int {
         var requiredPresses = 0
         input.parse().forEach { machine ->
-            requiredPresses += machine.requiredPresses()
+            requiredPresses += machine.matchOddity()
         }
         return requiredPresses
     }
@@ -21,32 +21,37 @@ fun main() {
     part2(input).println()
 }
 
-private fun Machine.requiredPresses(): Int {
-    var curSearchDepth = 0
-    while (true) {
-        val initialLightsState = CharArray(this.targetLightsState.length) { '.' }
-        if (requiredPressesRec(curLightsState = initialLightsState, curDepth = 0, maxDepth = curSearchDepth)) {
-            return curSearchDepth
-        }
-        curSearchDepth++
-    }
+private fun Machine.matchOddity(): Int {
+    val initialLightsState = CharArray(this.targetLightsState.length) { '.' }
+    val initialButtonsPressed = buttons.map { false }
+    return matchOddityRec(initialLightsState, initialButtonsPressed, 0)
 }
 
-private fun Machine.requiredPressesRec(curLightsState: CharArray, curDepth: Int, maxDepth: Int): Boolean {
+private fun Machine.matchOddityRec(curLightsState: CharArray, pressedButtons: List<Boolean>, curButtonIndex: Int): Int {
     if (String(curLightsState) == targetLightsState) {
-        return true
+        return pressedButtons.count { it }
     }
-    if (curDepth >= maxDepth) {
-        return false
+    if (curButtonIndex == pressedButtons.size) {
+        return Int.MAX_VALUE
     }
-    buttons.forEach { button ->
+    var minResult = Int.MAX_VALUE
+    val firstUnpressedIndex = pressedButtons.indexOfFirst { !it }
+
+
+    listOf(true, false).forEach { pressButton ->
         val newLightsState = curLightsState.clone()
-        newLightsState.press(button)
-        if (requiredPressesRec(newLightsState, curDepth + 1, maxDepth)) {
-            return true
+        val newPressedButtons = pressedButtons.toMutableList()
+        if (pressButton) {
+            newLightsState.press(buttons[curButtonIndex])
+            newPressedButtons[curButtonIndex] = true
         }
+        val result = matchOddityRec(newLightsState, newPressedButtons, curButtonIndex + 1)
+        if (result < minResult) {
+            minResult = result
+        }
+
     }
-    return false
+    return minResult
 }
 
 private fun CharArray.press(button: Button) {
