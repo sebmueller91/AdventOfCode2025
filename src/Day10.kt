@@ -22,13 +22,13 @@ fun main() {
 }
 
 private fun Machine.matchOddity(): Int {
-    val initialLightsState = CharArray(this.targetLightsState.length) { '.' }
+    val initialLightsState = Array(this.targetLightsState.size) { false }
     val initialButtonsPressed = buttons.map { false }
     return matchOddityRec(initialLightsState, initialButtonsPressed, 0)
 }
 
-private fun Machine.matchOddityRec(curLightsState: CharArray, pressedButtons: List<Boolean>, curButtonIndex: Int): Int {
-    if (String(curLightsState) == targetLightsState) {
+private fun Machine.matchOddityRec(curLightsState: Array<Boolean>, pressedButtons: List<Boolean>, curButtonIndex: Int): Int {
+    if (curLightsState.sameAs(targetLightsState)) {
         return pressedButtons.count { it }
     }
     if (curButtonIndex == pressedButtons.size) {
@@ -54,15 +54,19 @@ private fun Machine.matchOddityRec(curLightsState: CharArray, pressedButtons: Li
     return minResult
 }
 
-private fun CharArray.press(button: Button) {
+private fun Array<Boolean>.press(button: Button) {
     button.toggleLights.forEach { index ->
-        this[index] =
-            if (this[index] == '#') {
-                '.'
-            } else {
-                '#'
-            }
+        this[index] = !this[index]
     }
+}
+
+private fun Array<Boolean>.sameAs(other: Array<Boolean>): Boolean {
+    for (i in indices) {
+        if (this[i] != other[i]) {
+            return false
+        }
+    }
+    return true
 }
 
 private fun List<String>.parse(): List<Machine> {
@@ -83,9 +87,9 @@ private fun List<String>.parse(): List<Machine> {
         val joltages = part3.split(',').map { it.toInt() }
         list.add(
             Machine(
-                targetLightsState = part1,
-                buttons = buttonsList,
-                joltages = joltages
+                targetLightsState = part1.map { it == '#' }.toTypedArray(),
+                buttons = buttonsList.toTypedArray(),
+                joltages = joltages.toTypedArray()
             )
         )
     }
@@ -94,9 +98,9 @@ private fun List<String>.parse(): List<Machine> {
 }
 
 private class Machine(
-    val targetLightsState: String,
-    val buttons: List<Button>,
-    val joltages: List<Int>
+    val targetLightsState: Array<Boolean>,
+    val buttons: Array<Button>,
+    val joltages: Array<Int>
 )
 
 private data class Button(
