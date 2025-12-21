@@ -4,21 +4,22 @@ fun main() {
     fun part1(input: List<String>): Int {
         var requiredPresses = 0
         input.parse().forEach { machine ->
-            requiredPresses += machine.matchOddity(machine.targetLightsState).first
+            val successfulCombinations = machine.matchOddity(machine.targetLightsState)
+            requiredPresses += successfulCombinations.minOf { it.count { it } }
         }
         return requiredPresses
     }
 
     fun part2(input: List<String>): Int {
         var requiredPresses = 0
-        input.parse().forEachIndexed { index, machine ->
-//            index.println()
-            val oddities = machine.targetJoltages.calculateOddities()
-            val (requiredPressesForOddities, joltages) = machine.matchOddity(oddities)
-            joltages.toList().println()
-            requiredPresses += requiredPressesForOddities
-            requiredPresses += machine.matchJoltages(joltages)
-        }
+//        input.parse().forEachIndexed { index, machine ->
+////            index.println()
+//            val oddities = machine.targetJoltages.calculateOddities()
+//            val (requiredPressesForOddities, joltages) = machine.matchOddity(oddities)
+//            joltages.toList().println()
+//            requiredPresses += requiredPressesForOddities
+//            requiredPresses += machine.matchJoltages(joltages)
+//        }
 
         return requiredPresses
     }
@@ -44,43 +45,48 @@ private fun Array<Int>.calculateOddities(): Array<Boolean> {
     return oddities
 }
 
-private fun Machine.matchOddity(targetOddities: Array<Boolean>): Pair<Int, Array<Int>>  {
-    val initialLights = Array(targetOddities.size) { false }
-    val initialJoltages = Array(targetOddities.size) { 0 }
-    val initialButtonsPressed = buttons.map { false }
-    return matchOddityRec(initialLights, initialButtonsPressed, 0, initialJoltages, targetOddities)
+private fun Machine.matchOddity(targetOddities: Array<Boolean>): List<List<Boolean>> {
+    val initialOddities = Array(targetOddities.size) { false }
+    val initialButtonSelection = buttons.map { false }
+    return matchOddityRec(
+        curOddities = initialOddities,
+        targetOddities = targetOddities,
+        buttonSelection = initialButtonSelection,
+        curButtonIndex = 0
+    )
 }
 
 private fun Machine.matchOddityRec(
-    curLightsState: Array<Boolean>,
-    pressedButtons: List<Boolean>,
+    curOddities: Array<Boolean>,
+    targetOddities: Array<Boolean>,
+    buttonSelection: List<Boolean>,
     curButtonIndex: Int,
-    curJoltages: Array<Int>,
-    targetOddities: Array<Boolean>
-): Pair<Int, Array<Int>> {
-    if (curLightsState.sameAs(targetOddities)) {
-        return Pair(pressedButtons.count { it }, curJoltages)
+): List<List<Boolean>> {
+    if (curOddities.sameAs(targetOddities)) {
+        return listOf(buttonSelection)
     }
-    if (curButtonIndex == pressedButtons.size) {
-        return Pair(Int.MAX_VALUE, arrayOf())
+    if (curButtonIndex == buttonSelection.size) {
+        return listOf()
     }
-    var minResult = Pair(Int.MAX_VALUE, arrayOf<Int>())
 
+    val successfulCombinations = mutableListOf<List<Boolean>>()
     listOf(true, false).forEach { pressButton ->
-        val newLightsState = curLightsState.clone()
-        val newPressedButtons = pressedButtons.toMutableList()
-        val newJoltages = curJoltages.clone()
+        val newOddities = curOddities.clone()
+        val newButtonSelection = buttonSelection.toMutableList()
         if (pressButton) {
-            newLightsState.press(buttons[curButtonIndex], newJoltages)
-            newPressedButtons[curButtonIndex] = true
+            newOddities.press(buttons[curButtonIndex])
+            newButtonSelection[curButtonIndex] = true
         }
-        val result = matchOddityRec(newLightsState, newPressedButtons, curButtonIndex + 1, newJoltages, targetOddities)
-        if (result.first < minResult.first) {
-            minResult = result
-        }
+        val result = matchOddityRec(
+            curOddities = newOddities,
+            targetOddities = targetOddities,
+            buttonSelection = newButtonSelection,
+            curButtonIndex = curButtonIndex + 1
+        )
+        successfulCombinations.addAll(result)
 
     }
-    return minResult
+    return successfulCombinations
 }
 
 private fun Machine.matchJoltages(initialJoltages: Array<Int>): Int {
@@ -97,7 +103,7 @@ private fun Machine.matchJoltagesRec(
 //        return knownStates.getValue(curJoltages.toList())
     }
 
-    if (curJoltages.indices.any { index -> curJoltages[index] > targetJoltages[index]}) {
+    if (curJoltages.indices.any { index -> curJoltages[index] > targetJoltages[index] }) {
         return Int.MAX_VALUE
     }
 
@@ -105,7 +111,7 @@ private fun Machine.matchJoltagesRec(
 //        return Int.MAX_VALUE
     }
 
-    if (curJoltages.filterIndexed{index, value -> value == targetJoltages[index]}.size == curJoltages.size) {
+    if (curJoltages.filterIndexed { index, value -> value == targetJoltages[index] }.size == curJoltages.size) {
         return pressedButtonCount
     }
 
@@ -113,7 +119,7 @@ private fun Machine.matchJoltagesRec(
     buttons.forEach { button ->
         val newJoltages = curJoltages.clone()
         newJoltages.pressTwice(button)
-        val result = matchJoltagesRec(newJoltages, pressedButtonCount+2)
+        val result = matchJoltagesRec(newJoltages, pressedButtonCount + 2)
         if (result < minResult) {
             minResult = result
         }
@@ -122,10 +128,9 @@ private fun Machine.matchJoltagesRec(
     return minResult
 }
 
-private fun Array<Boolean>.press(button: Button, joltages: Array<Int>) {
+private fun Array<Boolean>.press(button: Button) {
     button.affectedIndices.forEach { index ->
         this[index] = !this[index]
-        joltages[index]++
     }
 }
 
